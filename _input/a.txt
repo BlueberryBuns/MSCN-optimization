@@ -1,0 +1,41 @@
+D <liczbaD> # liczba dostawców
+F <liczbaF> # liczba fabryk
+M <liczbaM> # liczba magazynów
+S <liczbaS> # liczba sklepów
+sd  # maksymalna moc produkcyjna dostawcy
+<liczbaD wartości rozdzielonych spacją lub przejściem do nowej linii>
+sf  # maksymalna mod produkcyjna fabryki
+<liczbaF wartości rozdzielonych spacją lub przejściem do nowej linii>
+sm  # maksymalna pojemność magazynu
+<liczbaM wartości rozdzielonych spacją lub przejściem do nowej linii>
+ss  # maksymalne zapotrzebowanie rynkowe
+<liczbaS wartości rozdzielonych spacją lub przejściem do nowej linii>
+cd  # koszt wytworzenia i przewiezienia surowca od dostawcy do fabryki
+<D * F wartości rozdzielonych spacją lub przejściem do nowej
+linii, czyli macierz zapisana wiersz po wierszu>
+cf  # koszt wyprodukowania produktu w fabryce f i przewiezienia go do magazynu m
+<liczbaF*liczbaM wartości rozdzielonych spacją lub przejściem do nowej
+linii, czyli macierz zapisana wiersz po wierszu>
+cm  # koszt przechowania produktu w magazynie m i przewiezienia go do sklepu s
+<liczbaM*liczbaS wartości rozdzielonych spacją lub przejściem do nowej
+linii, czyli macierz zapisana wiersz po wierszu>
+ud  # jednorazowy koszt korzystania z usług dostawcy d
+<liczbaD wartości rozdzielonych spacją lub przejściem do nowej linii>
+uf  # jednorazowy koszt korzystania z fabryki f
+<liczbaF wartości rozdzielonych spacją lub przejściem do nowej linii>
+um  # jednorazowy koszt korzystania z centrum dystrybucyjnego (magazynu) m
+<liczbaM wartości rozdzielonych spacją lub przejściem do nowej linii>
+p  # przychód uzyskiwany w sklepie s
+<liczbaS wartości rozdzielonych spacją lub przejściem do nowej linii>
+xdminmax # ile minimalnie moze trasportować dostawca do fabryki, i wile maksymalnie
+<2*liczbaD*liczbaF wartości rozdzielonych spacją lub przejściem do nowej
+linii, czyli macierz zapisana wiersz po wierszu, w każdym wierszu na
+przemian wartości min i max>
+xfminmax # ile minimalnie moze trasportować fabryka do magazynu, i ile maksymalnie
+<2*liczbaF*liczbaM wartości rozdzielonych spacją lub przejściem do nowej
+linii, czyli macierz zapisana wiersz po wierszu, w każdym wierszu na
+przemian wartości min i max>
+xmminmax # ile minimalnie moze trasportować magazyn do sklepu, i ile maksymalnie
+<2*liczbaM*liczbaS wartości rozdzielonych spacją lub przejściem do nowej
+linii, czyli macierz zapisana wiersz po wierszu, w każdym wierszu na
+przemian wartości min i max>
