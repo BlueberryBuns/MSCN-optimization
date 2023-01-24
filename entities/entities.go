@@ -17,13 +17,24 @@ type IBaseEntity interface {
 	GetMaxCapacity() float32
 	GetSetupCost() float32
 	GetEncodedRepresentation() string
+	SetCurrentCapacity(c float32)
+	GetCurrentCapacity() float32
 }
 
 type BaseEntity struct {
-	entityType  int
-	index       int
-	maxCapacity float32
-	setupCost   float32
+	entityType      int
+	index           int
+	maxCapacity     float32
+	setupCost       float32
+	currentCapacity float32
+}
+
+func (b *BaseEntity) GetCurrentCapacity() float32 {
+	return b.currentCapacity
+}
+
+func (b *BaseEntity) SetCurrentCapacity(c float32) {
+	b.currentCapacity = c
 }
 
 func (b *BaseEntity) GetIndex() int {
@@ -61,10 +72,11 @@ type Warehouse struct {
 func createSupplierEntity(index int, maxCapacity float32, setupCost float32) IBaseEntity {
 	return &Supplier{
 		BaseEntity: BaseEntity{
-			entityType:  SupplierType,
-			index:       index,
-			maxCapacity: maxCapacity,
-			setupCost:   setupCost,
+			entityType:      SupplierType,
+			index:           index,
+			maxCapacity:     maxCapacity,
+			setupCost:       setupCost,
+			currentCapacity: maxCapacity,
 		},
 	}
 }

@@ -11,7 +11,8 @@ import (
 )
 
 type MSCN struct {
-	DateStarted          string
+	DateStarted string
+	MSCNStructureInput
 	SuppliersStartIndex  int
 	FactoriesStartIndex  int
 	WarehousesStartIndex int
@@ -40,6 +41,7 @@ type MSCNStructureInput struct {
 	ShopIncomePerProduct               []float32 `yaml:"p"`
 	MinMaxSupplierFactoryProvisioning  []float32 `yaml:"xdminmax"`
 	MinMaxFactoryWarehouseProvisioning []float32 `yaml:"xfminmax"`
+	MinMaxWarehouseShopProvisioning    []float32 `yaml:"xmminmax"`
 }
 
 func GenerateMscnStructureFromFile(filename string) (MSCN, error) {
@@ -68,14 +70,15 @@ func GenerateMscnStructureFromFile(filename string) (MSCN, error) {
 		return MSCN{}, fmt.Errorf("%v", err)
 	}
 
-	formatedDate := time.Now().Format("2006-01-02 15:04:05")
+	formattedDate := time.Now().Format("2006-01-02 15:04:05")
 	suppliersStartIndex := 0
 	factoriesStartIndex := s.SupplierCount
 	warehousesStartIndex := s.FactoryCount + factoriesStartIndex
 	shopsStartIndex := s.WarehousesCount + warehousesStartIndex
 
 	return MSCN{
-			formatedDate,
+			formattedDate,
+			s,
 			suppliersStartIndex,
 			factoriesStartIndex,
 			warehousesStartIndex,

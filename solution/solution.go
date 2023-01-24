@@ -9,17 +9,11 @@ import (
 )
 
 type SolutionCalculator struct {
-	problemInstance *mscn.MSCN
+	*mscn.MSCN
 }
 
 func CreateSolutionCalculator(problemInstance *mscn.MSCN) SolutionCalculator {
-	sc := SolutionCalculator{problemInstance: problemInstance}
-	fmt.Printf("%v\n", sc.problemInstance.SuppliersStartIndex)
-	fmt.Printf("%v\n", sc.problemInstance.FactoriesStartIndex)
-	fmt.Printf("%v\n", sc.problemInstance.WarehousesStartIndex)
-	fmt.Printf("%v\n", sc.problemInstance.ShopsStartIndex)
-	fmt.Printf("XDDDD,%v\n", sc.problemInstance.ShopsStartIndex)
-
+	sc := SolutionCalculator{problemInstance}
 	return sc
 }
 
@@ -37,14 +31,26 @@ func (sc *SolutionCalculator) calculateProfit(solution []float32) float32 {
 
 func (sc *SolutionCalculator) CalculateIncome(solution []float32) float32 {
 	transport_cost := sc.calculateContractCost(solution)
-	profit := sc.calculateProfit(solution)
 	contract_cost := sc.calculateContractCost(solution)
+	profit := sc.calculateProfit(solution)
 	return profit - contract_cost - transport_cost
 }
 
 func (sc *SolutionCalculator) GenerateRandomSolution() []float32 {
-	fmt.Printf("%v\n", sc.problemInstance.DateStarted)
-	return []float32{1.1, 1.2}
+	fmt.Printf("%v\n", sc.DateStarted)
+	solution := sc.generateSupplierConnections()
+	return solution
+}
+
+func (sc *SolutionCalculator) GeneratePopulation(population_size int) [][]float32 {
+	population := make([][]float32, 0)
+
+	for i := 0; i < population_size; i++ {
+		specimen := sc.GenerateRandomSolution() //:= make([]float32, sc.SupplierCount*sc.FactoryCount+sc.FactoryCount*sc.WarehousesCount+sc.WarehousesCount*sc.ShopsCount)
+		population = append(population, [][]float32{specimen}...)
+	}
+
+	return population
 }
 
 type SolutionGenerator struct {
@@ -52,49 +58,60 @@ type SolutionGenerator struct {
 	validator    Validator
 }
 
-func generateSupplierConnections() {
-
-}
-
-func generateFactoryConnections() {
-
-}
-
-func generateWarehouseConnections() {
-
-}
-
-func generateShopConnections() {
-
-}
-
-func (sg *SolutionGenerator) generateInitialEntityConnection(entitiesA []entities.IBaseEntity, entitiesB []entities.IBaseEntity, startingIndex int) []float32 {
-	var partialSolution []float32
-	partiallyValidate := sg.validator.partiallyValidateEntity()
-	for indexA, entityA := range entitiesA {
-		entitiesB := utils.Shuffle(entitiesB)
-		for indexB, entityB := range entitiesB {
-			i := 0
-			checkedIndex := startingIndex + indexB
-			baseIndex := indexA * len(entitiesA)
-			start, stop := startingIndex+baseIndex, startingIndex+baseIndex
-			for i < 5 {
-				partialSolution[checkedIndex+baseIndex] = utils.RandFloatFromRange(0, entityB.GetMaxCapacity())
-				if _, ok := partiallyValidate(partialSolution[start:stop], entityA, checkedIndex); ok {
-					// @TODO: zrobić coś z tym...
-				}
-
-			}
+func (sc *SolutionCalculator) iterateOverConstraints(higherOrderEntities []entities.IBaseEntity, lowerOrderEntities []entities.IBaseEntity, provisioning []float32) []float32 {
+	partial_solution := make([]float32, len(lowerOrderEntities)*len(higherOrderEntities))
+	for _, hoe := range higherOrderEntities {
+		for _, loe := range lowerOrderEntities {
+			partial_solution[(hoe.GetIndex()*len(lowerOrderEntities) + loe.GetIndex())] = sc.InitializeConnection(hoe, loe, provisioning, len(lowerOrderEntities))
+			fmt.Printf("Saving at: %v, length of partial_solution %v\n", (hoe.GetIndex()*len(lowerOrderEntities) + loe.GetIndex()), len(partial_solution))
 		}
 	}
-	return partialSolution
-
+	fmt.Printf("%v\n", partial_solution)
+	return partial_solution
 }
 
-// func generate_random_solution(mscn_instance mscn.MSCNStructureInput) Solution {
-// 	// var supplier_factory_connections_count int = 1
-// 	return Solution{}
-// }
+func (sc *SolutionCalculator) InitializeConnection(hoe entities.IBaseEntity, loe entities.IBaseEntity, provisioning []float32, lowerOrderEntitiesLength int) float32 {
+	min_index := (loe.GetIndex() + hoe.GetIndex()*lowerOrderEntitiesLength) * 2
+	max_index := min_index + 1
+	min := provisioning[min_index]
+	max := provisioning[max_index]
+	connection_value := utils.RandFloatFromRange(min, max)
+
+	new_capacity := hoe.GetCurrentCapacity() - connection_value
+	hoe.SetCurrentCapacity(new_capacity)
+	loe.SetCurrentCapacity(connection_value)
+
+	fmt.Printf("set new connection value: %v, %v --->>> %v\t\t new %s capacity: %v\t\t Saving at: %v\t", min, max, connection_value, hoe.GetEncodedRepresentation(), hoe.GetCurrentCapacity(), loe.GetIndex()+hoe.GetIndex()*lowerOrderEntitiesLength)
+	return connection_value
+}
+
+func (sc *SolutionCalculator) generateSupplierConnections() []float32 {
+	solution := make([]float32, 0)
+
+	fmt.Println("Suppliers")
+	partial_solution := sc.iterateOverConstraints(sc.Suppliers, sc.Factories, sc.MinMaxSupplierFactoryProvisioning)
+	solution = append(solution, partial_solution...)
+	fmt.Printf("%v\n", solution)
+
+	fmt.Println("Factories")
+	partial_solution = sc.iterateOverConstraints(sc.Factories, sc.Warehouses, sc.MinMaxFactoryWarehouseProvisioning)
+	solution = append(solution, partial_solution...)
+	fmt.Printf("%v\n", solution)
+
+	fmt.Println("Warehouses")
+	partial_solution = sc.iterateOverConstraints(sc.Warehouses, sc.Shops, sc.MinMaxWarehouseShopProvisioning)
+	solution = append(solution, partial_solution...)
+	fmt.Printf("%v\n", solution)
+
+	return solution
+}
+
+func (sc *SolutionCalculator) DisplayPopulation(population [][]float32) {
+	fmt.Printf("Length of array %d\n", len(population))
+	for idx, row := range population {
+		fmt.Printf("%d: %v\n", idx, row)
+	}
+}
 
 /*
 	1 Producent

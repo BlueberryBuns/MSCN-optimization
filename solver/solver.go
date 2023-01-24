@@ -14,7 +14,12 @@ func SolveProblem() {
 		return
 	}
 
-	solutionCalculator := solution.CreateSolutionCalculator(&mscnInstance)
+	fmt.Printf("%v", mscnInstance)
 
-	fmt.Printf("%v\n", solutionCalculator.GenerateRandomSolution())
+	sc := solution.CreateSolutionCalculator(&mscnInstance)
+	population := sc.GeneratePopulation(5)
+
+	sc.DisplayPopulation(population)
+
+	// fmt.Printf("%v\n", sc.GenerateRandomSolution())
 }
