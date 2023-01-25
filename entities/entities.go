@@ -19,6 +19,7 @@ type IBaseEntity interface {
 	GetEncodedRepresentation() string
 	SetCurrentCapacity(c float32)
 	GetCurrentCapacity() float32
+	GetEntityType() int
 }
 
 type BaseEntity struct {
@@ -27,6 +28,10 @@ type BaseEntity struct {
 	maxCapacity     float32
 	setupCost       float32
 	currentCapacity float32
+}
+
+func (b *BaseEntity) GetEntityType() int {
+	return b.entityType
 }
 
 func (b *BaseEntity) GetCurrentCapacity() float32 {
@@ -114,7 +119,7 @@ func createShopEntity(index int, maxCapacity float32, profitPerProduct float32) 
 	}
 }
 
-func entityFactory(entityType string, index int, maxCapacity float32, setupCost float32) (IBaseEntity, error) {
+func EntityFactory(entityType string, index int, maxCapacity float32, setupCost float32) (IBaseEntity, error) {
 	switch entityType {
 	case "supplier":
 		return createSupplierEntity(index, maxCapacity, setupCost), nil
@@ -132,7 +137,7 @@ func EntitiesFactory(entityType string, entityCount int, capacities []float32, s
 	entities := make([]IBaseEntity, entityCount)
 	var err error
 	for index := 0; index < entityCount; index++ {
-		entities[index], err = entityFactory(entityType, index, capacities[index], setupCosts[index])
+		entities[index], err = EntityFactory(entityType, index, capacities[index], setupCosts[index])
 		if err != nil {
 			return nil, fmt.Errorf("[Error]: %v while creating entities slice of type %s\n", err, entityType)
 		}

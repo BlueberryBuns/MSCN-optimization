@@ -1,6 +1,17 @@
 package utils
 
-import "math/rand"
+import (
+	"math/rand"
+
+	"github.com/BlueberryBuns/MSCN-optimization/entities"
+)
+
+var entitiesMapping = map[int]string{
+	0: "supplier",
+	1: "factory",
+	2: "warehouse",
+	3: "shop",
+}
 
 func Sum[T int | float32](s []T) T {
 	var sum T = 0
@@ -24,4 +35,17 @@ func slice_assign(s1 []float32, s2 []float32, start_at int) []float32 {
 		s1[i+start_at] = s2[i]
 	}
 	return s1
+}
+
+func CopyEntities(src []entities.IBaseEntity) []entities.IBaseEntity {
+	newEntities := make([]entities.IBaseEntity, len(src))
+	var err error = nil
+
+	for index := 0; index < len(src); index++ {
+		newEntities[index], err = entities.EntityFactory(entitiesMapping[src[index].GetEntityType()], src[index].GetIndex(), src[index].GetMaxCapacity(), src[index].GetSetupCost())
+		if err != nil {
+		}
+	}
+
+	return newEntities
 }

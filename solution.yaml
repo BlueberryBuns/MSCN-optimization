@@ -17,7 +17,7 @@ ud: [80, 60]    # one-time cost of enabling supplier
 uf: [70, 40, 90]    # one-time cost of enabling factory
 um: [90, 34, 58]    # one-time cost of enabling warehouse
 
-p: [6, 2, 4, 1, 4]    # shop income (per product)
+p: [600, 200, 400, 1000, 4000]    # shop income (per product)
 
 xdminmax: [1, 9, 4, 9, 3, 7, 4, 9, 5, 7, 7, 9]    # "suppliers -> factories" min-max transport
 xfminmax: [2, 9, 3, 8, 4, 5, 3, 9, 2, 8, 4, 9, 2, 8, 3, 7, 2, 8]    # "factories -> warehouses min-max transport
