@@ -16,7 +16,7 @@ func SolveProblem() {
 
 	fmt.Printf("%v", mscnInstance)
 
-	populationSize := 10
+	populationSize := 1
 	sc := solution.CreateSolutionCalculator(&mscnInstance, populationSize)
 	population := sc.GeneratePopulation()
 
@@ -27,5 +27,7 @@ func SolveProblem() {
 	for idx, income := range incomes {
 		fmt.Printf("Total profit for solution %d:\t%.6f\n", idx, income)
 	}
+
+	// sc.FixEntities(population)
 	// fmt.Printf("%v\n", sc.GenerateRandomSolution())
 }

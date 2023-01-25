@@ -17,29 +17,46 @@ type IBaseEntity interface {
 	GetMaxCapacity() float32
 	GetSetupCost() float32
 	GetEncodedRepresentation() string
-	SetCurrentCapacity(c float32)
-	GetCurrentCapacity() float32
+	UpdateCapacityIn(c float32)
+	UpdateCapacityOut(c float32)
 	GetEntityType() int
+	GetCapacityOut() float32
+	GetCapacityIn() float32
+	UpdateGlobalInIndexes(inIndex int)
+	UpdateGlobalOutIndexes(outIndex int)
+	GetGlobalOutIndexes() []int
+	GetGlobalInIndexes() []int
 }
 
 type BaseEntity struct {
-	entityType      int
-	index           int
-	maxCapacity     float32
-	setupCost       float32
-	currentCapacity float32
+	entityType       int
+	index            int
+	maxCapacity      float32
+	setupCost        float32
+	capacityIn       float32
+	capacityOut      float32
+	globalInIndexes  []int
+	globalOutIndexes []int
 }
 
 func (b *BaseEntity) GetEntityType() int {
 	return b.entityType
 }
 
-func (b *BaseEntity) GetCurrentCapacity() float32 {
-	return b.currentCapacity
+func (b *BaseEntity) GetCapacityIn() float32 {
+	return b.capacityIn
 }
 
-func (b *BaseEntity) SetCurrentCapacity(c float32) {
-	b.currentCapacity = c
+func (b *BaseEntity) UpdateCapacityIn(c float32) {
+	b.capacityIn += c
+}
+
+func (b *BaseEntity) GetCapacityOut() float32 {
+	return b.capacityOut
+}
+
+func (b *BaseEntity) UpdateCapacityOut(c float32) {
+	b.capacityOut += c
 }
 
 func (b *BaseEntity) GetIndex() int {
@@ -56,6 +73,19 @@ func (b *BaseEntity) GetSetupCost() float32 {
 
 func (b *BaseEntity) GetEncodedRepresentation() string {
 	return strconv.Itoa(b.entityType) + strconv.Itoa(b.index)
+}
+
+func (b *BaseEntity) UpdateGlobalInIndexes(inIndex int) {
+	b.globalInIndexes = append(b.globalInIndexes, inIndex)
+}
+func (b *BaseEntity) GetGlobalInIndexes() []int {
+	return b.globalInIndexes
+}
+func (b *BaseEntity) UpdateGlobalOutIndexes(outIndex int) {
+	b.globalOutIndexes = append(b.globalOutIndexes, outIndex)
+}
+func (b *BaseEntity) GetGlobalOutIndexes() []int {
+	return b.globalOutIndexes
 }
 
 type Factory struct {
@@ -77,11 +107,11 @@ type Warehouse struct {
 func createSupplierEntity(index int, maxCapacity float32, setupCost float32) IBaseEntity {
 	return &Supplier{
 		BaseEntity: BaseEntity{
-			entityType:      SupplierType,
-			index:           index,
-			maxCapacity:     maxCapacity,
-			setupCost:       setupCost,
-			currentCapacity: maxCapacity,
+			entityType:  SupplierType,
+			index:       index,
+			maxCapacity: maxCapacity,
+			setupCost:   setupCost,
+			capacityIn:  maxCapacity,
 		},
 	}
 }

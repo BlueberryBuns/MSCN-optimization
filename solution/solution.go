@@ -10,6 +10,7 @@ import (
 
 type SolutionCalculator struct {
 	*mscn.MSCN
+	v              *Validator
 	suppliers      [][]entities.IBaseEntity
 	factories      [][]entities.IBaseEntity
 	warehouses     [][]entities.IBaseEntity
@@ -25,6 +26,8 @@ func CreateSolutionCalculator(problemInstance *mscn.MSCN, populationSize int) So
 	warehouses := make([][]entities.IBaseEntity, populationSize)
 	shops := make([][]entities.IBaseEntity, populationSize)
 
+	v := &Validator{problemInstance, 0.1}
+
 	for i := 0; i < populationSize; i++ {
 		suppliers[i] = make([]entities.IBaseEntity, problemInstance.SupplierCount)
 		factories[i] = make([]entities.IBaseEntity, problemInstance.FactoryCount)
@@ -37,9 +40,22 @@ func CreateSolutionCalculator(problemInstance *mscn.MSCN, populationSize int) So
 		copy(shops[i], utils.CopyEntities(problemInstance.Shops))
 	}
 
-	sc := SolutionCalculator{problemInstance, suppliers, factories, warehouses, shops, populationSize}
+	sc := SolutionCalculator{problemInstance, v, suppliers, factories, warehouses, shops, populationSize}
 
 	return sc
+}
+
+func (sc *SolutionCalculator) FixPopulation(solutions [][]float32) {
+	for i := 0; i < len(solutions); i++ {
+		sc.FixEntities(solutions[i], i)
+	}
+}
+
+func (sc *SolutionCalculator) FixEntities(solution []float32, populationIndex int) {
+	first_index := sc.SuppliersStartIndex
+	last_index := sc.FactoryCount * sc.SupplierCount
+	sc.v.FixHOEntities(solution[first_index:last_index], sc.suppliers[populationIndex], sc.factories[populationIndex])
+	sc.v.FixLOEntities(solution[first_index:last_index], sc.suppliers[populationIndex], sc.factories[populationIndex])
 }
 
 func (sc *SolutionCalculator) calculateTotalTransportationCost(solution []float32, populationIndex int) float32 {
@@ -104,7 +120,7 @@ func (sc *SolutionCalculator) calculateProfit(shops []entities.IBaseEntity) floa
 	var totalIncome float32
 
 	for _, shop := range shops {
-		totalIncome += (shop.GetCurrentCapacity() * shop.GetSetupCost())
+		totalIncome += (shop.GetCapacityIn() * shop.GetSetupCost())
 	}
 
 	return totalIncome
@@ -148,12 +164,16 @@ type SolutionGenerator struct {
 	validator    Validator
 }
 
-func (sc *SolutionCalculator) iterateOverConstraints(higherOrderEntities []entities.IBaseEntity, lowerOrderEntities []entities.IBaseEntity, provisioning []float32) []float32 {
+func (sc *SolutionCalculator) iterateOverConstraints(higherOrderEntities []entities.IBaseEntity, lowerOrderEntities []entities.IBaseEntity, provisioning []float32, offset int) []float32 {
 	partial_solution := make([]float32, len(lowerOrderEntities)*len(higherOrderEntities))
 	for _, hoe := range higherOrderEntities {
 		for _, loe := range lowerOrderEntities {
-			partial_solution[(hoe.GetIndex()*len(lowerOrderEntities) + loe.GetIndex())] = sc.InitializeConnection(hoe, loe, provisioning, len(lowerOrderEntities))
-			// fmt.Printf("Saving at: %v, length of partial_solution %v\n", (hoe.GetIndex()*len(lowerOrderEntities) + loe.GetIndex()), len(partial_solution))
+			index := (hoe.GetIndex()*len(lowerOrderEntities) + loe.GetIndex())
+			partial_solution[index] = sc.InitializeConnection(hoe, loe, provisioning, len(lowerOrderEntities))
+			hoe.UpdateGlobalOutIndexes(index + offset)
+			loe.UpdateGlobalInIndexes(index + offset)
+			// The part below was crucial for debugging
+			// fmt.Printf("Saving at: %v, length of partialSolution %v, hoe_in_indexes: %v, hoe_out_indexes: %v loe_in_indexes: %v, loe_out_indexes: %v\n", (hoe.GetIndex()*len(lowerOrderEntities) + loe.GetIndex()), len(partial_solution), hoe.GetGlobalInIndexes(), hoe.GetGlobalOutIndexes(), loe.GetGlobalInIndexes(), loe.GetGlobalOutIndexes())
 		}
 	}
 	// fmt.Printf("%v\n", partial_solution)
@@ -166,10 +186,6 @@ func (sc *SolutionCalculator) InitializeConnection(hoe entities.IBaseEntity, loe
 	min := provisioning[min_index]
 	max := provisioning[max_index]
 	connection_value := utils.RandFloatFromRange(min, max)
-
-	new_capacity := hoe.GetCurrentCapacity() - connection_value
-	hoe.SetCurrentCapacity(new_capacity)
-	loe.SetCurrentCapacity(connection_value)
 
 	// fmt.Printf("set new connection value: %v, %v --->>> %v\t\t new %s capacity: %v\t\t Saving at: %v\t", min, max, connection_value, hoe.GetEncodedRepresentation(), hoe.GetCurrentCapacity(), loe.GetIndex()+hoe.GetIndex()*lowerOrderEntitiesLength)
 	return connection_value
@@ -184,23 +200,19 @@ func (sc *SolutionCalculator) generateSupplierConnections(populationIndex int) [
 	_shops := sc.shops[populationIndex]
 
 	for i, supplier := range sc.Suppliers {
-		fmt.Printf("Supplier %d after population %d: %v\n", i, populationIndex, supplier.GetCurrentCapacity())
+		fmt.Printf("Supplier %d after population %d: %v\n", i, populationIndex, supplier.GetCapacityIn()-supplier.GetCapacityOut())
 	}
-
-	partialSolution := sc.iterateOverConstraints(_suppliers, _factories, sc.MinMaxSupplierFactoryProvisioning)
+	offset := 0
+	partialSolution := sc.iterateOverConstraints(_suppliers, _factories, sc.MinMaxSupplierFactoryProvisioning, offset)
 	solution = append(solution, partialSolution...)
 
-	// fmt.Printf("%v\n", solution)
-
-	// fmt.Println("Factories")
-	partialSolution = sc.iterateOverConstraints(_factories, _warehouses, sc.MinMaxFactoryWarehouseProvisioning)
+	offset = offset + len(partialSolution)
+	partialSolution = sc.iterateOverConstraints(_factories, _warehouses, sc.MinMaxFactoryWarehouseProvisioning, offset)
 	solution = append(solution, partialSolution...)
-	// fmt.Printf("%v\n", solution)
 
-	// fmt.Println("Warehouses")
-	partialSolution = sc.iterateOverConstraints(_warehouses, _shops, sc.MinMaxWarehouseShopProvisioning)
+	offset = offset + len(partialSolution)
+	partialSolution = sc.iterateOverConstraints(_warehouses, _shops, sc.MinMaxWarehouseShopProvisioning, offset)
 	solution = append(solution, partialSolution...)
-	// fmt.Printf("%v\n", solution)
 
 	return solution
 }
