@@ -1,3 +1,5 @@
+github.com/gruntwork-io/terratest v0.41.9 h1:jyygu23iLcEFjGQhlvRx4R0EJVqOoriP+Ire4U9cZA0=
+github.com/gruntwork-io/terratest v0.41.9/go.mod h1:qH1xkPTTGx30XkMHw8jAVIbzqheSjIa5IyiTwSV2vKI=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.4.0 h1:D8xgwECY7CYvx+Y2n4sBz93Jn9JRvxdiyyo8CTfuKaY=
 gopkg.in/yaml.v2 v2.4.0/go.mod h1:RDklbk79AGWmwhnvt/jBztapEOGDOx6ZbXqjP6csGnQ=
