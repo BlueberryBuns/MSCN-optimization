@@ -9,13 +9,13 @@ import (
 )
 
 func SolveProblem() {
-	mscnInstance, err := mscn.GenerateMscnStructureFromFile("/Users/hulewicz/Private/mscn/sol.yaml")
+	mscnInstance, err := mscn.GenerateMscnStructureFromFile("/Users/hulewicz/Private/mscn/solution.yaml")
 	if err != nil {
 		fmt.Printf("Error occurred, %v", err)
 		return
 	}
 
-	populationSize := 10000
+	populationSize := 100000
 	sc := solution.CreateSolutionCalculator(&mscnInstance, populationSize)
 	populationTimeStart := time.Now()
 	population := sc.GeneratePopulation()
