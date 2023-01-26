@@ -1,0 +1,24 @@
+D: 2    # number of suppliers
+F: 2    # number of factories
+M: 2    # number of warehouses
+S: 2    # number of shops
+
+sd: [45, 27]    # MAX production capacity of suppliers (związane z xdminmax [SUMA])
+sf: [17, 14]    # MAX production capacity of factories (związane z xfminmax [SUMA])
+sm: [50, 40]    # MAX capacity of warehouses (związane z xmminmax [SUMA])
+ss: [35, 15]    # MAX market demand (we can also call this capacity)
+
+# cost of "suppliers -> factories" e.g.: D1 -> F1 (3),  D1 -> F2 (7), D2 -> F2 (1)
+cd: [3, 7, 2, 4]
+cf: [8, 3, 7, 4]   # cost of "factories -> warehouses"
+cm: [9, 3, 7, 5]   # cost of "warehouses -> shops"
+
+ud: [80, 60]    # one-time cost of enabling supplier
+uf: [70, 40]    # one-time cost of enabling factory
+um: [90, 34]    # one-time cost of enabling warehouse
+
+p: [600, 4000]    # shop income (per product)
+
+xdminmax: [1, 9, 1, 9, 13, 15, 13, 20]    # "suppliers -> factories" min-max transport
+xfminmax: [2, 9, 3, 8, 2, 5, 3, 9]    # "factories -> warehouses min-max transport
+xmminmax: [1, 8, 1, 7, 1, 9, 1, 8]    # "warehouses -> shops" min-max transport

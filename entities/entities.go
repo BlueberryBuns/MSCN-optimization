@@ -2,6 +2,7 @@ package entities
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -17,13 +18,15 @@ type IBaseEntity interface {
 	GetMaxCapacity() float32
 	GetSetupCost() float32
 	GetEncodedRepresentation() string
-	UpdateCapacityIn(c float32)
-	UpdateCapacityOut(c float32)
+	UpdateCapacityIn(solution []float32)
+	UpdateCapacityOut(solution []float32)
 	GetEntityType() int
 	GetCapacityOut() float32
 	GetCapacityIn() float32
-	UpdateGlobalInIndexes(inIndex int)
-	UpdateGlobalOutIndexes(outIndex int)
+	AddGlobalInIndex(inIndex int)
+	AddGlobalOutIndex(outIndex int)
+	RemoveGlobalOutIndex(removedValue int)
+	RemoveGlobalInIndex(removedValue int)
 	GetGlobalOutIndexes() []int
 	GetGlobalInIndexes() []int
 }
@@ -47,16 +50,24 @@ func (b *BaseEntity) GetCapacityIn() float32 {
 	return b.capacityIn
 }
 
-func (b *BaseEntity) UpdateCapacityIn(c float32) {
-	b.capacityIn += c
+func (b *BaseEntity) UpdateCapacityIn(solution []float32) {
+	var totalCapacityIn float32
+	for _, globalIndex := range b.globalInIndexes {
+		totalCapacityIn += solution[globalIndex]
+	}
+	b.capacityIn = float32(math.Floor(float64(totalCapacityIn*10e6)) / 10e6)
 }
 
 func (b *BaseEntity) GetCapacityOut() float32 {
 	return b.capacityOut
 }
 
-func (b *BaseEntity) UpdateCapacityOut(c float32) {
-	b.capacityOut += c
+func (b *BaseEntity) UpdateCapacityOut(solution []float32) {
+	var totalCapacityOut float32
+	for _, globalIndex := range b.globalOutIndexes {
+		totalCapacityOut += solution[globalIndex]
+	}
+	b.capacityOut = float32(math.Floor(float64(totalCapacityOut*10e6)) / 10e6)
 }
 
 func (b *BaseEntity) GetIndex() int {
@@ -75,17 +86,45 @@ func (b *BaseEntity) GetEncodedRepresentation() string {
 	return strconv.Itoa(b.entityType) + strconv.Itoa(b.index)
 }
 
-func (b *BaseEntity) UpdateGlobalInIndexes(inIndex int) {
+func (b *BaseEntity) AddGlobalInIndex(inIndex int) {
 	b.globalInIndexes = append(b.globalInIndexes, inIndex)
 }
+
+func (b *BaseEntity) AddGlobalOutIndex(outIndex int) {
+	b.globalOutIndexes = append(b.globalOutIndexes, outIndex)
+}
+
 func (b *BaseEntity) GetGlobalInIndexes() []int {
 	return b.globalInIndexes
 }
-func (b *BaseEntity) UpdateGlobalOutIndexes(outIndex int) {
-	b.globalOutIndexes = append(b.globalOutIndexes, outIndex)
-}
+
 func (b *BaseEntity) GetGlobalOutIndexes() []int {
 	return b.globalOutIndexes
+}
+
+func (b *BaseEntity) RemoveGlobalOutIndex(removedValue int) {
+	newIndexes := make([]int, 0)
+	for _, index := range b.globalOutIndexes {
+		if index == removedValue {
+			continue
+		}
+
+		newIndexes = append(newIndexes, index)
+	}
+	b.globalOutIndexes = newIndexes
+}
+
+func (b *BaseEntity) RemoveGlobalInIndex(removedValue int) {
+	newIndexes := make([]int, 0)
+	for _, index := range b.globalInIndexes {
+		if index == removedValue {
+			newIndexes = append(newIndexes, -1)
+			continue
+		}
+
+		newIndexes = append(newIndexes, index)
+	}
+	b.globalInIndexes = newIndexes
 }
 
 type Factory struct {

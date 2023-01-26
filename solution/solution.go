@@ -52,68 +52,59 @@ func (sc *SolutionCalculator) FixPopulation(solutions [][]float32) {
 }
 
 func (sc *SolutionCalculator) FixEntities(solution []float32, populationIndex int) {
-	first_index := sc.SuppliersStartIndex
-	last_index := sc.FactoryCount * sc.SupplierCount
-	sc.v.FixHOEntities(solution[first_index:last_index], sc.suppliers[populationIndex], sc.factories[populationIndex])
-	sc.v.FixLOEntities(solution[first_index:last_index], sc.suppliers[populationIndex], sc.factories[populationIndex])
+	sc.v.FixEntities(solution, sc.suppliers[populationIndex], sc.factories[populationIndex], sc.MinMaxSupplierFactoryProvisioning)
+	sc.v.FixEntities(solution, sc.factories[populationIndex], sc.warehouses[populationIndex], sc.MinMaxFactoryWarehouseProvisioning)
+	sc.v.FixEntities(solution, sc.warehouses[populationIndex], sc.shops[populationIndex], sc.MinMaxWarehouseShopProvisioning)
 }
 
 func (sc *SolutionCalculator) calculateTotalTransportationCost(solution []float32, populationIndex int) float32 {
 	var totalTransportationCost float32
-
-	first_index := sc.SuppliersStartIndex
-	last_index := sc.FactoryCount * sc.SupplierCount
-	totalTransportationCost += sc.calculateCost(solution[first_index:last_index], sc.suppliers[populationIndex], sc.factories[populationIndex], singleTransportCost, sc.TransportCostSupplierToFactory)
-	first_index = last_index
-	last_index = last_index + sc.FactoryCount*sc.WarehousesCount
-	totalTransportationCost += sc.calculateCost(solution[first_index:last_index], sc.factories[populationIndex], sc.warehouses[populationIndex], singleTransportCost, sc.TransportCostFactoryToWarehouse)
-	first_index = last_index
-	last_index = last_index + sc.WarehousesCount*sc.ShopsCount
-	totalTransportationCost += sc.calculateCost(solution[first_index:last_index], sc.warehouses[populationIndex], sc.shops[populationIndex], singleTransportCost, sc.TransportCostWarehouseToStore)
-	fmt.Printf("Total Transport Cost:\t%.4f\n", totalTransportationCost)
+	totalTransportationCost += calculateCost(solution, sc.suppliers[populationIndex], sc.factories[populationIndex], singleTransportCost, sc.TransportCostSupplierToFactory)
+	// fmt.Printf("Total Transport Cost:\t%.4f\n", totalTransportationCost)
+	totalTransportationCost += calculateCost(solution, sc.factories[populationIndex], sc.warehouses[populationIndex], singleTransportCost, sc.TransportCostFactoryToWarehouse)
+	// fmt.Printf("Total Transport Cost:\t%.4f\n", totalTransportationCost)
+	totalTransportationCost += calculateCost(solution, sc.warehouses[populationIndex], sc.shops[populationIndex], singleTransportCost, sc.TransportCostWarehouseToStore)
+	// fmt.Printf("Total Transport Cost:\t%.4f\n", totalTransportationCost)
 	return totalTransportationCost
 }
 
 func (sc *SolutionCalculator) calculateTotalContractCost(solution []float32, populationIndex int) float32 {
 	var totalContractCost float32
 
-	first_index := sc.SuppliersStartIndex
-	last_index := sc.FactoryCount * sc.SupplierCount
-	totalContractCost += sc.calculateCost(solution[first_index:last_index], sc.suppliers[populationIndex], sc.factories[populationIndex], singleContractCost, sc.TransportCostSupplierToFactory)
-	first_index = last_index
-	last_index = last_index + sc.FactoryCount*sc.WarehousesCount
-	totalContractCost += sc.calculateCost(solution[first_index:last_index], sc.factories[populationIndex], sc.warehouses[populationIndex], singleContractCost, sc.TransportCostFactoryToWarehouse)
-	first_index = last_index
-	last_index = last_index + sc.WarehousesCount*sc.ShopsCount
-	totalContractCost += sc.calculateCost(solution[first_index:last_index], sc.warehouses[populationIndex], sc.shops[populationIndex], singleContractCost, sc.TransportCostWarehouseToStore)
-	fmt.Printf("Total Contract Cost:\t%.4f\n", totalContractCost)
+	totalContractCost += calculateCost(solution, sc.suppliers[populationIndex], sc.factories[populationIndex], singleContractCost, sc.TransportCostSupplierToFactory)
+	// fmt.Printf("Total Contract Cost:\t%.4f\n", totalContractCost)
+	totalContractCost += calculateCost(solution, sc.factories[populationIndex], sc.warehouses[populationIndex], singleContractCost, sc.TransportCostFactoryToWarehouse)
+	// fmt.Printf("Total Contract Cost:\t%.4f\n", totalContractCost)
+	totalContractCost += calculateCost(solution, sc.warehouses[populationIndex], sc.shops[populationIndex], singleContractCost, sc.TransportCostWarehouseToStore)
+	// fmt.Printf("Total Contract Cost:\t%.4f\n", totalContractCost)
 	return totalContractCost
 }
 
-func (sc *SolutionCalculator) calculateCost(partialSolution []float32, higherOrderEntities []entities.IBaseEntity, lowerOrderEntities []entities.IBaseEntity, callable costCalculator, transportCost []float32) float32 {
+func calculateCost(solution []float32, higherOrderEntities []entities.IBaseEntity, lowerOrderEntities []entities.IBaseEntity, callable costCalculator, transportCost []float32) float32 {
 	var totalCost float32
 	for _, hoe := range higherOrderEntities {
 		for _, loe := range lowerOrderEntities {
-			totalCost += callable(partialSolution, hoe, loe, len(lowerOrderEntities), transportCost)
+			totalCost += callable(solution, hoe, loe, len(lowerOrderEntities), transportCost)
 		}
 	}
 
 	return totalCost
 }
 
-func singleContractCost(partialSolution []float32, hoe entities.IBaseEntity, loe entities.IBaseEntity, loeLength int, transportCost []float32) float32 {
-	index := hoe.GetIndex()*loeLength + loe.GetIndex()
-	if connectionValue := partialSolution[index]; connectionValue != 0 {
+func singleContractCost(solution []float32, hoe entities.IBaseEntity, loe entities.IBaseEntity, loeLength int, transportCost []float32) float32 {
+	connectionIndex := hoe.GetGlobalOutIndexes()[loe.GetIndex()]
+	if connectionValue := solution[connectionIndex]; connectionValue != 0 {
 		return hoe.GetSetupCost()
 	}
 
 	return 0.0
 }
 
-func singleTransportCost(partialSolution []float32, hoe entities.IBaseEntity, loe entities.IBaseEntity, loeLength int, transportCost []float32) float32 {
+func singleTransportCost(solution []float32, hoe entities.IBaseEntity, loe entities.IBaseEntity, loeLength int, transportCost []float32) float32 {
+	connectionIndex := hoe.GetGlobalOutIndexes()[loe.GetIndex()]
 	index := hoe.GetIndex()*loeLength + loe.GetIndex()
 	// fmt.Printf("index: %v, \ttransport cost: %v, \t partialSolution: %v\n", index, transportCost, partialSolution)
-	return partialSolution[index] * transportCost[index]
+	return solution[connectionIndex] * transportCost[index]
 }
 
 func (sc *SolutionCalculator) calculateProfit(shops []entities.IBaseEntity) float32 {
@@ -143,7 +134,7 @@ func (sc *SolutionCalculator) CalculateIncome(solution []float32, populationInde
 }
 
 func (sc *SolutionCalculator) GenerateRandomSolution(populationIndex int) []float32 {
-	fmt.Printf("%v\n", sc.DateStarted)
+	// fmt.Printf("%v\n", sc.DateStarted)
 	solution := sc.generateSupplierConnections(populationIndex)
 	return solution
 }
@@ -170,8 +161,8 @@ func (sc *SolutionCalculator) iterateOverConstraints(higherOrderEntities []entit
 		for _, loe := range lowerOrderEntities {
 			index := (hoe.GetIndex()*len(lowerOrderEntities) + loe.GetIndex())
 			partial_solution[index] = sc.InitializeConnection(hoe, loe, provisioning, len(lowerOrderEntities))
-			hoe.UpdateGlobalOutIndexes(index + offset)
-			loe.UpdateGlobalInIndexes(index + offset)
+			hoe.AddGlobalOutIndex(index + offset)
+			loe.AddGlobalInIndex(index + offset)
 			// The part below was crucial for debugging
 			// fmt.Printf("Saving at: %v, length of partialSolution %v, hoe_in_indexes: %v, hoe_out_indexes: %v loe_in_indexes: %v, loe_out_indexes: %v\n", (hoe.GetIndex()*len(lowerOrderEntities) + loe.GetIndex()), len(partial_solution), hoe.GetGlobalInIndexes(), hoe.GetGlobalOutIndexes(), loe.GetGlobalInIndexes(), loe.GetGlobalOutIndexes())
 		}
@@ -199,9 +190,9 @@ func (sc *SolutionCalculator) generateSupplierConnections(populationIndex int) [
 	_warehouses := sc.warehouses[populationIndex]
 	_shops := sc.shops[populationIndex]
 
-	for i, supplier := range sc.Suppliers {
-		fmt.Printf("Supplier %d after population %d: %v\n", i, populationIndex, supplier.GetCapacityIn()-supplier.GetCapacityOut())
-	}
+	// for i, supplier := range sc.Suppliers {
+	// fmt.Printf("Supplier %d after population %d: %v\n", i, populationIndex, supplier.GetCapacityIn()-supplier.GetCapacityOut())
+	// }
 	offset := 0
 	partialSolution := sc.iterateOverConstraints(_suppliers, _factories, sc.MinMaxSupplierFactoryProvisioning, offset)
 	solution = append(solution, partialSolution...)

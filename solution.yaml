@@ -3,24 +3,24 @@ F: 3    # number of factories
 M: 3    # number of warehouses
 S: 5    # number of shops
 
-sd: [13, 27]    # MAX production capacity of suppliers (związane z xdminmax [SUMA])
-sf: [17, 14, 16]    # MAX production capacity of factories (związane z xfminmax [SUMA])
-sm: [50, 40, 60]    # MAX capacity of warehouses (związane z xmminmax [SUMA])
-ss: [35, 15, 10, 70, 50]    # MAX market demand (we can also call this capacity)
+sd: [13, 27]                # MAX production capacity of suppliers (związane z xdminmax [SUMA])
+sf: [17, 14, 16]            # MAX production capacity of factories (związane z xfminmax [SUMA])
+sm: [50, 40, 60]            # MAX capacity of warehouses (związane z xmminmax [SUMA])
+ss: [60, 45, 50, 70, 50]    # MAX market demand (we can also call this capacity)
 
 # cost of "suppliers -> factories" e.g.: D1 -> F1 (3),  D1 -> F2 (7), D2 -> F2 (1)
 cd: [3, 7, 2, 4, 1, 5]
-cf: [8, 3, 7, 4, 1, 9, 3, 8, 4]   # cost of "factories -> warehouses"
+cf: [8, 3, 7, 4, 1, 9, 3, 8, 4]                     # cost of "factories -> warehouses"
 cm: [9, 3, 7, 5, 1, 4, 7, 9, 3, 5, 1, 4, 3, 7, 5]   # cost of "warehouses -> shops"
 
-ud: [80, 60]    # one-time cost of enabling supplier
+ud: [80, 60]        # one-time cost of enabling supplier
 uf: [70, 40, 90]    # one-time cost of enabling factory
 um: [90, 34, 58]    # one-time cost of enabling warehouse
 
-p: [600, 200, 400, 1000, 4000]    # shop income (per product)
+p: [800, 500, 700, 500, 600]    # shop income (per product)
 
-xdminmax: [1, 9, 4, 9, 3, 7, 4, 9, 5, 7, 7, 9]    # "suppliers -> factories" min-max transport
+xdminmax: [1, 9, 4, 9, 3, 7, 4, 9, 3, 7, 7, 9]                      # "suppliers -> factories" min-max transport
 xfminmax: [2, 9, 3, 8, 4, 5, 3, 9, 2, 8, 4, 9, 2, 8, 3, 7, 2, 8]    # "factories -> warehouses min-max transport
-xmminmax: [3, 8, 2, 7, 3, 9, 4, 8, 6, 7, 
-          3, 9, 1, 6, 3, 9, 2, 8, 3, 7, 
-          1, 8, 2, 8, 3, 7, 1, 8, 3, 7]    # "warehouses -> shops" min-max transport
+xmminmax: [3, 8, 2, 7, 3, 9, 4, 8, 2, 7, 3,
+           9, 1, 6, 3, 9, 2, 8, 3, 7, 1, 8,
+           2, 8, 3, 7, 1, 8, 3, 7] 

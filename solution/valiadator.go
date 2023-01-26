@@ -3,7 +3,6 @@ package solution
 import (
 	"github.com/BlueberryBuns/MSCN-optimization/entities"
 	"github.com/BlueberryBuns/MSCN-optimization/mscn"
-	"github.com/BlueberryBuns/MSCN-optimization/utils"
 )
 
 type Validator struct {
@@ -11,138 +10,94 @@ type Validator struct {
 	decrementalValue float32
 }
 
-func (v *Validator) FixHOEntities(partialSolution []float32, hoEntities []entities.IBaseEntity, loEntities []entities.IBaseEntity) {
-	v.UpdateCapacitiesIn(hoEntities, loEntities, partialSolution)
-	v.UpdateCapacitiesOut(hoEntities, loEntities, partialSolution)
+func (v *Validator) FixEntities(solution []float32, hoEntities []entities.IBaseEntity, loEntities []entities.IBaseEntity, provisioning []float32) {
+	// lowerOrderEntities := utils.Shuffle(loEntities)
+	v.fixOverflows(solution, hoEntities, loEntities)
+	v.fixOutOfBoundConnections(solution, hoEntities, loEntities, provisioning)
 
-	for i := 0; i < len(hoEntities); i++ {
-		for hoEntities[i].GetCapacityOut()-hoEntities[i].GetCapacityIn() < 0 {
+}
 
+// func updateSolution(solution []float32)
+func (v *Validator) fixOutOfBoundConnections(solution []float32, hoEntities []entities.IBaseEntity, loEntities []entities.IBaseEntity, provisioning []float32) {
+	for _, e := range hoEntities {
+		for loeIndex, globalIndex := range e.GetGlobalOutIndexes() {
+
+			minIndex := (e.GetIndex()*len(loEntities) + loeIndex) * 2
+			maxIndex := minIndex + 1
+
+			if solution[globalIndex] < provisioning[minIndex] {
+				// fmt.Printf("Solution: %v exceeds min capacity (%v), at index %v\n", solution[globalIndex], provisioning[minIndex], minIndex)
+				solution[globalIndex] = 0.0
+				e.UpdateCapacityOut(solution)
+				loEntities[loeIndex].UpdateCapacityIn(solution)
+				loEntities[loeIndex].UpdateCapacityOut(solution)
+			}
+
+			if solution[globalIndex] > provisioning[maxIndex] {
+				solution[globalIndex] = provisioning[maxIndex]
+				e.UpdateCapacityOut(solution)
+				loEntities[loeIndex].UpdateCapacityIn(solution)
+				loEntities[loeIndex].UpdateCapacityOut(solution)
+			}
 		}
+	}
+	v.updateCapacitiesIn(solution, hoEntities)
+	v.updateCapacitiesIn(solution, loEntities)
+	v.updateCapacitiesOut(solution, hoEntities)
+	v.updateCapacitiesOut(solution, loEntities)
+	// fmt.Printf("Provisioning: %v\n", provisioning)
+}
+
+func (v *Validator) fixOverflows(solution []float32, hoEntities []entities.IBaseEntity, loEntities []entities.IBaseEntity) {
+	v.updateCapacitiesIn(solution, hoEntities)
+	v.updateCapacitiesIn(solution, loEntities)
+	v.updateCapacitiesOut(solution, hoEntities)
+	v.updateCapacitiesOut(solution, loEntities)
+	var nullify bool
+	for _, h := range hoEntities {
+		for (h.GetCapacityIn() - h.GetCapacityOut()) < 0.0 {
+			nullify = false
+			if h.GetCapacityIn() == 0 {
+				nullify = true
+			}
+
+			// fmt.Printf("Current capacity %v, %v\n", h.GetCapacityIn(), h.GetCapacityOut())
+			for loIndex, globalIndex := range h.GetGlobalOutIndexes() {
+				if nullify {
+					// fmt.Printf(">>>>>>>>>Before %v\n", solution)
+					solution[globalIndex] = 0
+					h.UpdateCapacityOut(solution)
+					loEntities[loIndex].UpdateCapacityIn(solution)
+					// fmt.Printf(">>>>>>>>>After %v\n", solution)
+					continue
+				}
+
+				solution[globalIndex] = solution[globalIndex] * 0.9
+				h.UpdateCapacityOut(solution)
+				loEntities[loIndex].UpdateCapacityIn(solution)
+				// fmt.Printf("solution %v\n", solution[loIndex])
+			}
+		}
+		// fmt.Printf("Redundancy in capacity: %v\n", h.GetCapacityIn()-h.GetCapacityOut())
 	}
 }
 
-func (v *Validator) FixLOEntities(partialSolution []float32, hoEntities []entities.IBaseEntity, loEntities []entities.IBaseEntity) {
-	v.UpdateCapacitiesIn(hoEntities, loEntities, partialSolution)
-	v.UpdateCapacitiesOut(hoEntities, loEntities, partialSolution)
-
-	for i := 0; i < len(hoEntities); i++ {
-		for hoEntities[i].GetCapacityOut()-hoEntities[i].GetCapacityIn() < 0 {
-
-		}
-	}
-}
-
-func (v *Validator) UpdateCapacitiesIn(hoes []entities.IBaseEntity, loes []entities.IBaseEntity, partialSolution []float32) {
-	if loes[0].GetEntityType() == entities.SupplierType {
+func (v *Validator) updateCapacitiesIn(solution []float32, eSlice []entities.IBaseEntity) {
+	if eSlice[0].GetEntityType() == entities.SupplierType {
 		return
 	}
 
-	for i := 0; i < len(loes); i++ {
-		loes[i].UpdateCapacityIn(calculateCapacityIn(partialSolution, loes[i], hoes, len(loes)))
+	for _, e := range eSlice {
+		e.UpdateCapacityIn(solution)
 	}
 }
 
-func calculateCapacityIn(partialSolution []float32, loe entities.IBaseEntity, hoes []entities.IBaseEntity, loesLength int) float32 {
-	var capacityIn float32
-	for _, hoe := range hoes {
-		capacityIn += partialSolution[loesLength*hoe.GetIndex()+loe.GetIndex()]
-	}
-
-	return capacityIn
-}
-
-func (v *Validator) UpdateCapacitiesOut(hoes []entities.IBaseEntity, loes []entities.IBaseEntity, partialSolution []float32) {
-	if loes[0].GetEntityType() == entities.SupplierType {
+func (v *Validator) updateCapacitiesOut(solution []float32, eSlice []entities.IBaseEntity) {
+	if eSlice[0].GetEntityType() == entities.ShopType {
 		return
 	}
 
-	for i := 0; i < len(loes); i++ {
-		loes[i].UpdateCapacityIn(calculateCapacityOut(partialSolution, loes[i], hoes, len(loes)))
+	for _, e := range eSlice {
+		e.UpdateCapacityOut(solution)
 	}
-}
-
-func calculateCapacityOut(partialSolution []float32, hoe entities.IBaseEntity, loes []entities.IBaseEntity, hoesLength int) float32 {
-	var capacityOut float32
-	for _, loe := range loes {
-		capacityOut += partialSolution[hoesLength*loe.GetIndex()+hoe.GetIndex()]
-	}
-
-	return capacityOut
-}
-
-// func (v *Validator) calculateCapacityOut(partialSolution []float32, loes []entities.IBaseEntity, hoe entities.IBaseEntity, hoesLength int) float32 {
-// 	if loe.GetEntityType() == entities.SupplierType {
-// 		return loe.GetCapacityOut()
-// 	}
-
-// 	var capacityOut float32
-// 	for _, hoe := range loes {
-// 		capacityOut += partialSolution[hoesLength*hoe.GetIndex()+hoe.GetIndex()]
-// 	}
-
-// 	return capacityOut
-// }
-
-// func checkLowerOrderCapacity(solution []float32, loEntities []entities.IBaseEntity, offset int) {
-// 	if loEntities == nil {
-// 		return
-// 	}
-// 	for i := 0; i < len(loEntities); i++ {
-// 		if loEntities[i].GetCurrentCapacity() > loEntities[i].GetMaxCapacity() {
-// 			loEntities[i].SetCurrentCapacity(loEntities[i].GetMaxCapacity())
-
-// 		}
-// 	}
-// }
-
-// func (v *Validator) fixConnection(solution []float32)
-
-func (v *Validator) partiallyValidateEntity() func(partialSolution []float32, checkedEntity entities.IBaseEntity, checkedIndex int) (int, bool) { // you should pass already a sliced version
-	var cache = make(map[string]float32)
-	return func(partialSolution []float32, checkedEntity entities.IBaseEntity, checkedIndex int) (int, bool) {
-		var currentCapacity float32 = 0
-		if ret, ok := cache[checkedEntity.GetEncodedRepresentation()]; ok {
-			currentCapacity = ret
-		}
-		currentCapacity += partialSolution[checkedIndex]
-		if currentCapacity > checkedEntity.GetMaxCapacity() {
-			return checkedIndex, false
-		}
-		cache[checkedEntity.GetEncodedRepresentation()] = currentCapacity
-		return checkedIndex + 1, true
-	}
-}
-
-func (v *Validator) isSupplierConnectionValid(solution []float32) bool {
-	for supplierIndex, supplier := range v.Suppliers {
-		startIndex := supplierIndex * len(v.Factories)
-		endIndex := supplierIndex*len(v.Factories) + len(v.Suppliers)
-		// for conn := supplierIndex * len(v.Factories); conn < v.FactoriesStartIndex * supplierIndex; conn++ {
-		// 	totalSupplierCapacity +=
-		// }
-		totalSupplierCapacity := utils.Sum(solution[startIndex:endIndex])
-		if totalSupplierCapacity > supplier.GetMaxCapacity() {
-			return false
-		}
-	}
-	return true
-}
-func (v *Validator) isFactoryInputConnectionValid(solution []float32) bool {
-	return true
-}
-func (v *Validator) isFactoryOutputConnectionValid(solution []float32) bool {
-	return true
-}
-func (v *Validator) isWarehouseInputConnectionValid(solution []float32) bool {
-	return true
-}
-func (v *Validator) isWarehouseOutputConnectionValid(solution []float32) bool {
-	return true
-}
-func (v *Validator) isShopInputConnectionValid(solution []float32) bool {
-	return true
-}
-func (v *Validator) isShopOutputConnectionValid(solution []float32) bool {
-	return true
 }
